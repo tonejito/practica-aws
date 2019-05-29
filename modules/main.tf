@@ -127,11 +127,23 @@ resource "aws_db_instance" "mysql_rds" {
   engine                    = "mysql"
   engine_version            = "5.7"
   instance_class            = "db.t3.micro"
-  name                      = "mydb"
+  identifier                = "mysql-rds"
+  name                      = "rds_database"
   username                  = "master"
   password                  = "${var.mysql_pw}"
   parameter_group_name      = "default.mysql5.7"
   final_snapshot_identifier = "mysql-rds-${random_id.id.hex}"
+}
+
+################################################################################
+# https://www.terraform.io/docs/providers/aws/r/s3_bucket.html
+# https://docs.aws.amazon.com/AmazonS3/latest/dev/example-bucket-policies.html
+
+resource "aws_s3_bucket" "backups_s3" {
+  bucket = "s3-${random_id.id.hex}.${var.dns_domain}"
+  acl    = "private"
+
+  tags = "${var.tags}"
 }
 
 ################################################################################
@@ -207,17 +219,6 @@ resource "aws_route53_record" "db" {
   type    = "CNAME"
   ttl     = "300"
   records = ["${aws_db_instance.mysql_rds.address}"]
-}
-
-################################################################################
-# https://www.terraform.io/docs/providers/aws/r/s3_bucket.html
-# https://docs.aws.amazon.com/AmazonS3/latest/dev/example-bucket-policies.html
-
-resource "aws_s3_bucket" "backups_s3" {
-  bucket = "s3-${random_id.id.hex}.${var.dns_domain}"
-  acl    = "private"
-
-  tags = "${var.tags}"
 }
 
 # ################################################################################
@@ -306,3 +307,22 @@ resource "aws_s3_bucket" "backups_s3" {
 #   ttl     = "600"
 #   records = ["v=spf1 include:amazonses.com -all"]
 # }
+
+################################################################################
+# https://www.terraform.io/docs/configuration-0-11/outputs.html
+
+output "web-instance" {
+  value = "${aws_instance.web.id}"
+}
+
+output "mail-instance" {
+  value = "${aws_instance.mail.id}"
+}
+
+output "rds-instance" {
+  value = "${aws_db_instance.mysql_rds.endpoint}"
+}
+
+output "s3-bucket" {
+  value = "${aws_s3_bucket.backups_s3.id}"
+}
