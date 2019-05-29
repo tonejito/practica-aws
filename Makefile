@@ -1,13 +1,16 @@
 SHELL=/bin/bash
 
 TERRAFORM=terraform
+DIG=dig
 
 PLAN_FILE=terraform.tfplan
 STATE_FILE=terraform.tfstate
 VAR_FILE=terraform.tfvars
 
+DNS_DOMAIN=tonejito.cf
+
 .PHONY:	all
-all:	plan apply
+all:	plan apply test
 
 clean:
 	cd modules ; \
@@ -15,15 +18,23 @@ clean:
 
 plan:
 	cd modules ; \
-	${TERRAFORM} $@ -state ${STATE_FILE} -out ${PLAN_FILE}
+	${TERRAFORM} $@ -no-color -state ${STATE_FILE} -out ${PLAN_FILE}
 
 apply:
 	cd modules ; \
-	${TERRAFORM} $@ -state ${STATE_FILE}
+	${TERRAFORM} $@ -no-color -state ${STATE_FILE}
 
 destroy:
 	cd modules ; \
-	${TERRAFORM} $@ -state ${STATE_FILE}
+	${TERRAFORM} $@ -no-color -state ${STATE_FILE}
+
+test:
+	for RECORD in "" web www mail smtp imap db ; \
+	do \
+	  echo "$$ ${DIG} ANY $$RECORD.${DNS_DOMAIN} @8.8.8.8" ; \
+	  ${DIG} ANY $$RECORD.${DNS_DOMAIN} @8.8.8.8 ; \
+		sleep 2 ; \
+	done
 
 # import:
 # 	cd modules ; \
