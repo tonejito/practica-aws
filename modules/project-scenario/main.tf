@@ -110,21 +110,13 @@ resource "aws_iam_group" "iam_group" {
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/iam_group_membership.html
 
-resource "aws_iam_group_membership" "iam_group_membership_master" {
+resource "aws_iam_group_membership" "iam_group_membership" {
   name = "${var.name}-${random_id.id.hex}"
   group = aws_iam_group.iam_group.name
-  users = [
+  users = flatten([
     aws_iam_user.iam_user_master.name,
-  ]
-}
-
-resource "aws_iam_group_membership" "iam_group_membership" {
-  count = length(var.equipo)
-  name = "${var.equipo[count.index]}-${var.name}-${random_id.id.hex}"
-  group = aws_iam_group.iam_group.name
-  users = [
-    aws_iam_user.iam_user[count.index].name,
-  ]
+    aws_iam_user.iam_user.*.name,
+  ])
 }
 
 ################################################################################
