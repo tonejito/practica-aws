@@ -249,7 +249,11 @@ resource "aws_security_group" "allow_all" {
   # tags = {
   #   Name = "allow_all_traffic"
   # }
-  tags = var.tags
+  # tags = var.tags
+  tags        = merge(
+                  var.tags,
+                  {"Name" = "allow_all_traffic"}
+                )
 }
 
 ################################################################################
@@ -328,8 +332,14 @@ resource "aws_instance" "ec2_instance" {
 
   # associate_public_ip_address = ? # check conflicts with EIP
   user_data   = ""            # bootstrap from file
-  tags        = var.tags # Add "Name" tag
-  volume_tags = var.tags
+  tags        = merge(
+                  var.tags,
+                  {"Name" = var.equipo[count.index]}
+                )
+  volume_tags = merge(
+                  var.tags,
+                  {"Name" = var.equipo[count.index]}
+                )
 }
 
 ################################################################################
@@ -340,7 +350,11 @@ resource "aws_eip" "elastic_ip" {
 
   instance = aws_instance.ec2_instance[count.index].id # lookup instance with index
   vpc      = true
-  tags     = var.tags
+  # tags     = var.tags
+  tags        = merge(
+                  var.tags,
+                  {"Name" = var.equipo[count.index]}
+                )
 }
 
 ################################################################################
