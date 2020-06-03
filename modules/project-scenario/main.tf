@@ -564,13 +564,15 @@ output "ec2_instances" {
 }
 
 output "elastic_ip" {
-  value = aws_eip.elastic_ip.*.public_ip
+  value = [
+    aws_eip.elastic_ip.*.public_ip,
+    aws_eip.elastic_ip.*.private_ip,
+  ]
 }
 
-output "public_record_a" {
-  value = aws_route53_record.public_record_a.*.name
-}
-
-output "private_record_a" {
-  value = aws_route53_record.private_record_a.*.name
+output "dns_records_a" {
+  value = [
+    aws_route53_record.public_record_a.*.name,
+    aws_route53_record.private_record_a.*.name,
+  ]
 }
