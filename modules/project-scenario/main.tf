@@ -110,12 +110,20 @@ resource "aws_iam_group" "iam_group" {
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/iam_group_membership.html
 
-resource "aws_iam_group_membership" "iam_group_membership" {
+resource "aws_iam_group_membership" "iam_group_membership_master" {
   name = "${var.name}-${random_id.id.hex}"
   group = aws_iam_group.iam_group.name
   users = [
     aws_iam_user.iam_user_master.name,
-    join("\",\"", aws_iam_user.iam_user.*.name),
+  ]
+}
+
+resource "aws_iam_group_membership" "iam_group_membership" {
+  count = length(var.equipo)
+  name = "${var.equipo[count.index]}-${var.name}-${random_id.id.hex}"
+  group = aws_iam_group.iam_group.name
+  users = [
+    aws_iam_user.iam_user[count.index].name,
   ]
 }
 
@@ -541,7 +549,10 @@ resource "aws_route53_record" "imap" {
 # }
 
 output "iam_user" {
-  value = aws_iam_user.iam_user.*.name
+  value = [
+    aws_iam_user.iam_user_master.name,
+    aws_iam_user.iam_user.*.name,
+  ]
 }
 
 output "route53_ns" {
