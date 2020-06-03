@@ -108,7 +108,25 @@ resource "aws_iam_group" "iam_group" {
 }
 
 ################################################################################
+# https://www.terraform.io/docs/providers/aws/r/iam_group_membership.html
+
+resource "aws_iam_group_membership" "iam_group_membership" {
+  name = "${var.name}-${random_id.id.hex}"
+  group = aws_iam_group.iam_group.name
+  users = [
+    aws_iam_user.iam_user_master.name,
+    join("\",\"", aws_iam_user.iam_user.*.name),
+  ]
+}
+
+################################################################################
 # https://www.terraform.io/docs/providers/aws/r/iam_user.html
+
+resource "aws_iam_user" "iam_user_master" {
+  name = "${var.name}-${random_id.id.hex}"
+  path = var.iam_path
+  tags = var.tags
+}
 
 resource "aws_iam_user" "iam_user" {
   count = length(var.equipo)
@@ -119,6 +137,10 @@ resource "aws_iam_user" "iam_user" {
 
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/iam_access_key.html
+
+resource "aws_iam_access_key" "iam_access_key_master" {
+  user = aws_iam_user.iam_user_master.name
+}
 
 resource "aws_iam_access_key" "iam_access_key" {
   count = length(var.equipo)
@@ -342,79 +364,73 @@ resource "aws_route53_zone" "dns_zone" {
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/route53_record.html
 
-resource "aws_route53_record" "dns_record_a" {
+resource "aws_route53_record" "public_record_a" {
   count = length(var.equipo)
 
   zone_id = aws_route53_zone.dns_zone.zone_id
   # zone_id = var.dns_zone_id
-  name    = "${var.equipo[count.index]}.${var.dns_domain}" # lookup with index
+  name    = "${var.equipo[count.index]}.${var.dns_domain}"
   type    = "A"
   ttl     = "300"
   records = [ aws_eip.elastic_ip[count.index].public_ip ]
 }
 
-# resource "aws_route53_record" "www" {
-#   zone_id = aws_route53_zone.dns_zone.zone_id
-#   # zone_id = var.dns_zone_id
-#   name    = "www.${var.dns_domain}"
-#   type    = "CNAME"
-#   ttl     = "300"
-#   records = [ aws_route53_record._.name ]
-# }
-#
-# resource "aws_route53_record" "mail" {
-#   zone_id = aws_route53_zone.dns_zone.zone_id
-#   # zone_id = var.dns_zone_id
-#   name    = "mail.${var.dns_domain}"
-#   type    = "A"
-#   ttl     = "300"
-#   records = [ aws_eip.elastic_ip[count.index].public_ip ]
-# }
-#
-# resource "aws_route53_record" "mx" {
-#   zone_id = aws_route53_zone.dns_zone.zone_id
-#   # zone_id = var.dns_zone_id
-#   name    = "${var.dns_domain}"
-#   type    = "MX"
-#   ttl     = "300"
-#   records = ["1 ${aws_route53_record.mail.name}"]
-# }
-#
-# resource "aws_route53_record" "spf" {
-#   zone_id = aws_route53_zone.dns_zone.zone_id
-#   # zone_id = var.dns_zone_id
-#   name    = "${var.dns_domain}"
-#   type    = "SPF"
-#   ttl     = "300"
-#   records = ["v=spf1 mx a include:amazonses.com ~all"]
-# }
-#
-# resource "aws_route53_record" "smtp" {
-#   zone_id = aws_route53_zone.dns_zone.zone_id
-#   # zone_id = var.dns_zone_id
-#   name    = "smtp.${var.dns_domain}"
-#   type    = "CNAME"
-#   ttl     = "300"
-#   records = [ aws_route53_record.mail.name ]
-# }
-#
-# resource "aws_route53_record" "imap" {
-#   zone_id = aws_route53_zone.dns_zone.zone_id
-#   # zone_id = var.dns_zone_id
-#   name    = "imap.${var.dns_domain}"
-#   type    = "CNAME"
-#   ttl     = "300"
-#   records = [ aws_route53_record.mail.name ]
-# }
+resource "aws_route53_record" "private_record_a" {
+  count = length(var.equipo)
 
-# resource "aws_route53_record" "db" {
-#   zone_id = aws_route53_zone.dns_zone.zone_id
-#   # zone_id = var.dns_zone_id
-#   name    = "db.${var.dns_domain}"
-#   type    = "CNAME"
-#   ttl     = "300"
-#   records = [ aws_db_instance.mysql_rds.address ]
-# }
+  zone_id = aws_route53_zone.dns_zone.zone_id
+  # zone_id = var.dns_zone_id
+  name    = "${var.equipo[count.index]}.priv.${var.dns_domain}"
+  type    = "A"
+  ttl     = "300"
+  records = [ aws_eip.elastic_ip[count.index].private_ip ]
+}
+
+resource "aws_route53_record" "mx" {
+  # Create this record if we have a mail team
+  count = contains(var.equipo, "mail") == true ? 1 : 0
+  zone_id = aws_route53_zone.dns_zone.zone_id
+  # zone_id = var.dns_zone_id
+  name    = var.dns_domain
+  type    = "MX"
+  ttl     = "300"
+  # records = ["1 ${aws_route53_record.mail.name}"] # lookup by name
+  records = ["1 ${aws_route53_record.public_record_a[index(var.equipo, "mail")].name}"]
+}
+
+resource "aws_route53_record" "spf" {
+  # Create this record if we have a mail team
+  count = contains(var.equipo, "mail") == true ? 1 : 0
+  zone_id = aws_route53_zone.dns_zone.zone_id
+  # zone_id = var.dns_zone_id
+  name    = var.dns_domain
+  type    = "SPF"
+  ttl     = "300"
+  records = ["v=spf1 mx a include:amazonses.com ~all"]
+}
+
+resource "aws_route53_record" "smtp" {
+  # Create this record if we have a mail team
+  count = contains(var.equipo, "mail") == true ? 1 : 0
+  zone_id = aws_route53_zone.dns_zone.zone_id
+  # zone_id = var.dns_zone_id
+  name    = "smtp.${var.dns_domain}"
+  type    = "CNAME"
+  ttl     = "300"
+  # records = [ aws_route53_record.mail.name ] # lookup by name
+  records = [aws_route53_record.public_record_a[index(var.equipo, "mail")].name]
+}
+
+resource "aws_route53_record" "imap" {
+  # Create this record if we have a mail team
+  count = contains(var.equipo, "mail") == true ? 1 : 0
+  zone_id = aws_route53_zone.dns_zone.zone_id
+  # zone_id = var.dns_zone_id
+  name    = "imap.${var.dns_domain}"
+  type    = "CNAME"
+  ttl     = "300"
+  records = [aws_route53_record.public_record_a[index(var.equipo, "mail")].name]
+}
 
 # ################################################################################
 # # https://www.terraform.io/docs/providers/aws/r/ses_domain_identity.html
@@ -526,6 +542,10 @@ output "elastic_ip" {
   value = aws_eip.elastic_ip.*.public_ip
 }
 
-output "dns_record_a" {
-  value = aws_route53_record.dns_record_a.*.name
+output "public_record_a" {
+  value = aws_route53_record.public_record_a.*.name
+}
+
+output "private_record_a" {
+  value = aws_route53_record.private_record_a.*.name
 }
