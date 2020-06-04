@@ -46,6 +46,10 @@ variable "extra_iam_policies" {
   type = list(string)
 }
 
+variable "s3_website_content" {
+  type = list(map(string))
+}
+
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/
 provider "aws" {
@@ -73,15 +77,48 @@ resource "random_id" "id" {
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/s3_bucket.html
 # https://docs.aws.amazon.com/AmazonS3/latest/dev/example-bucket-policies.html
-# TODO: Rename this and import it
 
-resource "aws_s3_bucket" "s3_state" {
-  bucket = "s3-${var.name}.${var.dns_domain}"
-  acl    = "private"
+resource "aws_s3_bucket" "s3_static_website" {
+  bucket = var.dns_domain
+  acl    = "public-read"
   tags   = var.tags
-  versioning {
-    enabled = true
+
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::${var.dns_domain}/*"
+            ]
+        }
+    ]
+}
+EOF
+
+  website {
+    index_document = "index.html"
+    error_document = "error.txt"
   }
+}
+
+################################################################################
+# https://www.terraform.io/docs/providers/aws/r/s3_bucket_object.html
+
+resource "aws_s3_bucket_object" "object" {
+  count   = length(var.s3_website_content)
+  bucket  = aws_s3_bucket.s3_static_website.id
+  acl     = "public-read"
+  key     = lookup(var.s3_website_content[count.index], "Name", "index.html")
+  source = lookup(var.s3_website_content[count.index], "Source", "error.txt")
+  content_type = lookup(var.s3_website_content[count.index], "ContentType", "text/plain")
+  etag = md5(file(lookup(var.s3_website_content[count.index], "Source", "error.txt")))
 }
 
 ################################################################################
@@ -244,12 +281,6 @@ resource "aws_security_group" "allow_all" {
   name        = "allow_all_traffic"
   description = "Allow all traffic"
   vpc_id      = var.vpc_id
-
-  # TODO: Merge var.tags with Name tag
-  # tags = {
-  #   Name = "allow_all_traffic"
-  # }
-  # tags = var.tags
   tags        = merge(
                   var.tags,
                   {"Name" = "allow_all_traffic"}
@@ -258,6 +289,7 @@ resource "aws_security_group" "allow_all" {
 
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/security_group_rule.html
+# TODO: Create SG rules in array
 
 resource "aws_security_group_rule" "allow_all_ingress_icmp" {
   type              = "ingress"
@@ -347,10 +379,8 @@ resource "aws_instance" "ec2_instance" {
 
 resource "aws_eip" "elastic_ip" {
   count = length(var.equipo)
-
-  instance = aws_instance.ec2_instance[count.index].id # lookup instance with index
+  instance = aws_instance.ec2_instance[count.index].id
   vpc      = true
-  # tags     = var.tags
   tags        = merge(
                   var.tags,
                   {"Name" = var.equipo[count.index]}
@@ -363,8 +393,8 @@ resource "aws_eip" "elastic_ip" {
 resource "aws_eip_association" "elastic_ip_association" {
   count = length(var.equipo)
 
-  instance_id   = aws_instance.ec2_instance[count.index].id # lookup with index
-  allocation_id = aws_eip.elastic_ip[count.index].id  # lookup with index
+  instance_id   = aws_instance.ec2_instance[count.index].id
+  allocation_id = aws_eip.elastic_ip[count.index].id
 }
 
 ################################################################################
@@ -400,6 +430,20 @@ resource "aws_route53_record" "private_record_a" {
   records = [ aws_eip.elastic_ip[count.index].private_ip ]
 }
 
+# S3 static website
+resource "aws_route53_record" "_" {
+  zone_id = aws_route53_zone.dns_zone.zone_id
+  name    = var.dns_domain
+  type    = "A"
+
+  alias {
+    name    = aws_s3_bucket.s3_static_website.website_domain
+    zone_id = aws_s3_bucket.s3_static_website.hosted_zone_id
+
+    evaluate_target_health = true
+  }
+}
+
 resource "aws_route53_record" "mx" {
   # Create this record if we have a mail team
   count = contains(var.equipo, "mail") == true ? 1 : 0
@@ -408,7 +452,6 @@ resource "aws_route53_record" "mx" {
   name    = var.dns_domain
   type    = "MX"
   ttl     = "300"
-  # records = ["1 ${aws_route53_record.mail.name}"] # lookup by name
   records = ["1 ${aws_route53_record.public_record_a[index(var.equipo, "mail")].name}"]
 }
 
@@ -431,7 +474,6 @@ resource "aws_route53_record" "smtp" {
   name    = "smtp.${var.dns_domain}"
   type    = "CNAME"
   ttl     = "300"
-  # records = [ aws_route53_record.mail.name ] # lookup by name
   records = [aws_route53_record.public_record_a[index(var.equipo, "mail")].name]
 }
 
@@ -564,6 +606,7 @@ output "elastic_ip" {
 
 output "dns_records_a" {
   value = [
+    aws_route53_record._.name,
     aws_route53_record.public_record_a.*.name,
     aws_route53_record.private_record_a.*.name,
   ]
