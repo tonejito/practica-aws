@@ -2,6 +2,9 @@
 # https://www.terraform.io/docs/providers/aws/r/s3_bucket.html
 # https://docs.aws.amazon.com/AmazonS3/latest/dev/example-bucket-policies.html
 
+# TODO: Add CloudFront distribution and ACM cert to get HTTPS endpoint
+# for the static website
+
 resource "aws_s3_bucket" "s3_static_website" {
   bucket = var.dns_domain
   acl    = "public-read"
