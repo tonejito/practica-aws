@@ -50,10 +50,6 @@ variable "s3_website_content" {
   type = list(map(string))
 }
 
-# variable "sg_rules" {
-#   type = list(map(string))
-# }
-
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/
 provider "aws" {
@@ -64,9 +60,9 @@ provider "aws" {
 ################################################################################
 #
 # https://www.terraform.io/docs/backends/types/s3.html
+# The configuration for this backend will be filled in by Terragrunt
 
 terraform {
-  # The configuration for this backend will be filled in by Terragrunt
   backend "s3" {}
 }
 
@@ -127,7 +123,6 @@ resource "aws_s3_bucket_object" "object" {
 
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/key_pair.html
-
 # $ mkdir -vp ~/.ssh/keys
 # $ chmod 0700 ~/.ssh/keys
 # $ ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/keys/aws-ciencias_rsa -C "andres.hernandez@ciencias.unam.mx"
@@ -135,9 +130,8 @@ resource "aws_s3_bucket_object" "object" {
 resource "aws_key_pair" "ssh_key" {
   key_name = "${var.key_name}-${random_id.id.hex}"
   tags = var.tags
-
-  # public_key = "ssh-rsa ... email@example.com"
   public_key = file("${var.ssh_key_file}")
+  # public_key = "ssh-rsa ... email@example.com"
 }
 
 ################################################################################
@@ -194,9 +188,6 @@ resource "aws_iam_access_key" "iam_access_key" {
 resource "aws_iam_role" "iam_role" {
   name = "role-${var.name}-${random_id.id.hex}"
   tags = var.tags
-
-  # TODO: Get this policy from file
-  # assume_role_policy = "${file("${var.assume_role_policy_file}")}"
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -220,9 +211,6 @@ EOF
 resource "aws_iam_policy" "iam_policy" {
   name        = "policy-${var.name}-${random_id.id.hex}"
   description = "Limited access policy"
-
-  # TODO: Get this policy from file
-  # policy = "${file("${var.iam_policy_file}")}"
   policy = <<EOF
 {
     "Version": "2012-10-17",
@@ -285,10 +273,7 @@ resource "aws_security_group" "allow_all" {
   name        = "allow_all_traffic"
   description = "Allow all traffic"
   vpc_id      = var.vpc_id
-  tags        = merge(
-                  var.tags,
-                  {"Name" = "allow_all_traffic"}
-                )
+  tags        = merge({"Name" = "allow_all_traffic"}, var.tags)
 }
 
 ################################################################################
@@ -296,7 +281,6 @@ resource "aws_security_group" "allow_all" {
 # TODO: Create SG rules in array
 
 resource "aws_security_group_rule" "allow_all_ingress" {
-  # count = length(var.sg_rules)
   description       = "pass in all"
   type              = "ingress"
   protocol          = "-1"
@@ -308,7 +292,6 @@ resource "aws_security_group_rule" "allow_all_ingress" {
 }
 
 resource "aws_security_group_rule" "allow_all_egress" {
-  # count = length(var.sg_rules)
   description       = "pass out all"
   type              = "egress"
   protocol          = "-1"
@@ -321,52 +304,39 @@ resource "aws_security_group_rule" "allow_all_egress" {
 
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/instance.html
+# TODO: Add /64 ipv6_cidr_block to aws_subnet to use
+# ipv6_address_count in aws_instance
 
 resource "aws_instance" "ec2_instance" {
   count = length(var.equipo)
-
   ami           = var.ami_id
   instance_type = var.instance_type
-  # key_name      = var.key_name
   key_name      = aws_key_pair.ssh_key.key_name
   ebs_optimized = "true"
   monitoring    = "false"
   subnet_id = var.subnet_id
-
   disable_api_termination = "true"
   vpc_security_group_ids  = [ aws_security_group.allow_all.id ]
-
-  # associate_public_ip_address = ? # check conflicts with EIP
   user_data   = ""            # bootstrap from file
-  tags        = merge(
-                  var.tags,
-                  {"Name" = var.equipo[count.index]}
-                )
-  volume_tags = merge(
-                  var.tags,
-                  {"Name" = var.equipo[count.index]}
-                )
+  tags        = merge({"Name" = var.equipo[count.index]}, var.tags)
+  volume_tags = merge({"Name" = var.equipo[count.index]}, var.tags)
 }
 
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/eip.html
 
 resource "aws_eip" "elastic_ip" {
-  count = length(var.equipo)
+  count    = length(var.equipo)
   instance = aws_instance.ec2_instance[count.index].id
   vpc      = true
-  tags        = merge(
-                  var.tags,
-                  {"Name" = var.equipo[count.index]}
-                )
+  tags     = merge({"Name" = var.equipo[count.index]}, var.tags)
 }
 
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/eip_association.html
 
 resource "aws_eip_association" "elastic_ip_association" {
-  count = length(var.equipo)
-
+  count         = length(var.equipo)
   instance_id   = aws_instance.ec2_instance[count.index].id
   allocation_id = aws_eip.elastic_ip[count.index].id
 }
@@ -381,12 +351,12 @@ resource "aws_route53_zone" "dns_zone" {
 
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/route53_record.html
+# TODO: Add AAAA public and private records when IPv6 support is ebs_enabled
+# on aws_subnet and aws_instance
 
 resource "aws_route53_record" "public_record_a" {
   count = length(var.equipo)
-
   zone_id = aws_route53_zone.dns_zone.zone_id
-  # zone_id = var.dns_zone_id
   name    = "${var.equipo[count.index]}.${var.dns_domain}"
   type    = "A"
   ttl     = "300"
@@ -395,9 +365,7 @@ resource "aws_route53_record" "public_record_a" {
 
 resource "aws_route53_record" "private_record_a" {
   count = length(var.equipo)
-
   zone_id = aws_route53_zone.dns_zone.zone_id
-  # zone_id = var.dns_zone_id
   name    = "${var.equipo[count.index]}.priv.${var.dns_domain}"
   type    = "A"
   ttl     = "300"
@@ -422,7 +390,6 @@ resource "aws_route53_record" "mx" {
   # Create this record if we have a mail team
   count = contains(var.equipo, "mail") == true ? 1 : 0
   zone_id = aws_route53_zone.dns_zone.zone_id
-  # zone_id = var.dns_zone_id
   name    = var.dns_domain
   type    = "MX"
   ttl     = "300"
@@ -433,7 +400,6 @@ resource "aws_route53_record" "spf" {
   # Create this record if we have a mail team
   count = contains(var.equipo, "mail") == true ? 1 : 0
   zone_id = aws_route53_zone.dns_zone.zone_id
-  # zone_id = var.dns_zone_id
   name    = var.dns_domain
   type    = "SPF"
   ttl     = "300"
@@ -444,7 +410,6 @@ resource "aws_route53_record" "smtp" {
   # Create this record if we have a mail team
   count = contains(var.equipo, "mail") == true ? 1 : 0
   zone_id = aws_route53_zone.dns_zone.zone_id
-  # zone_id = var.dns_zone_id
   name    = "smtp.${var.dns_domain}"
   type    = "CNAME"
   ttl     = "300"
@@ -455,7 +420,6 @@ resource "aws_route53_record" "imap" {
   # Create this record if we have a mail team
   count = contains(var.equipo, "mail") == true ? 1 : 0
   zone_id = aws_route53_zone.dns_zone.zone_id
-  # zone_id = var.dns_zone_id
   name    = "imap.${var.dns_domain}"
   type    = "CNAME"
   ttl     = "300"
