@@ -25,24 +25,15 @@ resource "aws_iam_group" "iam_group" {
 resource "aws_iam_group_membership" "iam_group_membership" {
   name  = "${var.name}-${random_id.id.hex}"
   group = aws_iam_group.iam_group.name
-  users = flatten([
-    aws_iam_user.iam_user_master.name,
-    aws_iam_user.iam_user.*.name,
-  ])
+  users = aws_iam_user.iam_user.*.name
 }
 
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/iam_user.html
 
-resource "aws_iam_user" "iam_user_master" {
-  name = "${var.name}-${random_id.id.hex}"
-  path = var.iam_path
-  tags = var.tags
-}
-
 resource "aws_iam_user" "iam_user" {
-  count = length(var.equipo)
-  name  = "${var.equipo[count.index]}-${var.name}-${random_id.id.hex}"
+  count = length(local.user_list)
+  name  = "${local.user_list[count.index]}-${var.name}-${random_id.id.hex}"
   path  = var.iam_path
   tags  = var.tags
 }
@@ -50,12 +41,8 @@ resource "aws_iam_user" "iam_user" {
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/iam_access_key.html
 
-resource "aws_iam_access_key" "iam_access_key_master" {
-  user = aws_iam_user.iam_user_master.name
-}
-
 resource "aws_iam_access_key" "iam_access_key" {
-  count = length(var.equipo)
+  count = length(local.user_list)
   user  = aws_iam_user.iam_user[count.index].name
 }
 

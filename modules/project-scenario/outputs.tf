@@ -2,10 +2,7 @@
 # https://www.terraform.io/docs/configuration/outputs.html
 
 output "iam_user" {
-  value = [
-    aws_iam_user.iam_user_master.name,
-    aws_iam_user.iam_user.*.name,
-  ]
+  value = aws_iam_user.iam_user.*.name
 }
 
 output "route53_ns" {
