@@ -27,3 +27,7 @@ output "dns_records_a" {
     aws_route53_record.private_record_a.*.name,
   ]
 }
+
+output "dashboard_url" {
+  value = "https://console.aws.amazon.com/cloudwatch/home?region=${var.aws_region}#dashboards:name=${aws_cloudwatch_dashboard.cloudwatch_dashboard.dashboard_name}"
+}
