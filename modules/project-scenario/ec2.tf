@@ -13,9 +13,12 @@ resource "aws_instance" "ec2_instance" {
   subnet_id               = var.subnet_id
   disable_api_termination = "true"
   vpc_security_group_ids  = [aws_security_group.allow_all.id]
-  user_data               = "" # bootstrap from file
-  tags                    = merge({ "Name" = var.equipo[count.index] }, var.tags)
-  volume_tags             = merge({ "Name" = var.equipo[count.index] }, var.tags)
+  root_block_device {
+    volume_size = var.root_volume_size
+  }
+  user_data   = "" # bootstrap from file
+  tags        = merge({ "Name" = var.equipo[count.index] }, var.tags)
+  volume_tags = merge({ "Name" = var.equipo[count.index] }, var.tags)
 }
 
 ################################################################################

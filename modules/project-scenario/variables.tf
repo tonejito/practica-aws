@@ -14,6 +14,10 @@ variable "subnet_id" {}
 
 variable "ami_id" {}
 
+variable "root_volume_size" {
+  default = "10"
+}
+
 variable "instance_type" {}
 
 variable "dns_domain" {}
