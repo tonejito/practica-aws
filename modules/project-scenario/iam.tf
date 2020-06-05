@@ -81,14 +81,14 @@ resource "aws_iam_policy" "iam_policy" {
     "Statement": [
         {
             "Sid": "EC2LimitedAccess",
-            "Effect": "Allow",
+            "Effect": "Deny",
             "Action": [
                 "ec2:RebootInstances",
                 "ec2:StartInstances",
                 "ec2:StopInstances"
             ],
             "Resource": [
-                "arn:aws:ec2:*::instance/*"
+                "arn:aws:ec2:*:*:instance/*"
             ]
         },
         {
