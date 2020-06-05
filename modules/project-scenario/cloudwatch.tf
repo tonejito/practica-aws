@@ -1,5 +1,6 @@
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/cloudwatch_dashboard.html
+# https://www.terraform.io/docs/configuration/expressions.html#directives
 # TODO: Add memory and OS metrics if the CloudWatch agent is installed
 
 resource "aws_cloudwatch_dashboard" "cloudwatch_dashboard" {
