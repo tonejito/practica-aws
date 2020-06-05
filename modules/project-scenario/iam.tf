@@ -119,13 +119,27 @@ EOF
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/iam_role_policy_attachment.html
 
-resource "aws_iam_role_policy_attachment" "role_policy_attachment_inline" {
+resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment-inline" {
   role       = aws_iam_role.iam_role.name
   policy_arn = aws_iam_policy.iam_policy.arn
 }
 
-resource "aws_iam_role_policy_attachment" "role_policy_attachment_extra" {
+resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment-extra" {
   count      = length(var.extra_iam_policies)
   role       = aws_iam_role.iam_role.name
+  policy_arn = var.extra_iam_policies[count.index]
+}
+
+################################################################################
+# https://www.terraform.io/docs/providers/aws/r/iam_group_policy_attachment.html
+
+resource "aws_iam_group_policy_attachment" "iam_group_policy_attachment-inline" {
+  group      = aws_iam_group.iam_group.name
+  policy_arn = aws_iam_policy.iam_policy.arn
+}
+
+resource "aws_iam_group_policy_attachment" "iam_group_policy_attachment-extra" {
+  count      = length(var.extra_iam_policies)
+  group      = aws_iam_group.iam_group.name
   policy_arn = var.extra_iam_policies[count.index]
 }
