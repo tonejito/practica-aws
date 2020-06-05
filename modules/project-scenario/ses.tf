@@ -61,3 +61,9 @@ resource "aws_route53_record" "ses_domain_mail_from_txt" {
   ttl     = "600"
   records = ["v=spf1 include:amazonses.com -all"]
 }
+
+################################################################################
+# https://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-email-addresses-procedure.html
+# https://docs.aws.amazon.com/cli/latest/reference/ses/verify-email-identity.html
+#
+# aws ses verify-email-identity --email-address sender@example.com
