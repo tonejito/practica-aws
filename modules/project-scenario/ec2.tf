@@ -5,6 +5,10 @@
 #
 # https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/installing-cloudwatch-agent-commandline.html
 # TODO: Install and configure CloudWatch Agent to get memory and OS metrics
+#
+# Turn off "disable_api_termination" before deleting the EC2 instance
+# aws ec2 describe-instance-attribute --instance-id ${INSTANCE_ID} --attribute disableApiTermination
+# aws ec2 modify-instance-attribute --instance-id ${INSTANCE_ID} --no-disable-api-termination
 
 resource "aws_instance" "ec2_instance" {
   count                   = length(var.equipo)
