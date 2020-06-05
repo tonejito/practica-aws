@@ -15,8 +15,8 @@ output "ec2_instances" {
 
 output "elastic_ip" {
   value = [
-    aws_eip.elastic_ip.*.public_ip,
-    aws_eip.elastic_ip.*.private_ip,
+    aws_instance.ec2_instance.*.public_ip,
+    aws_instance.ec2_instance.*.private_ip,
   ]
 }
 

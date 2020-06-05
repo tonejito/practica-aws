@@ -8,7 +8,7 @@ resource "aws_instance" "ec2_instance" {
   ami                     = var.ami_id
   instance_type           = var.instance_type
   key_name                = aws_key_pair.ssh_key.key_name
-  ebs_optimized           = "true"
+  ebs_optimized           = "false" # "true"
   monitoring              = "false"
   subnet_id               = var.subnet_id
   disable_api_termination = "true"
@@ -25,17 +25,28 @@ resource "aws_instance" "ec2_instance" {
 # https://www.terraform.io/docs/providers/aws/r/eip.html
 
 resource "aws_eip" "elastic_ip" {
-  count    = length(var.equipo)
-  instance = aws_instance.ec2_instance[count.index].id
+  # count    = length(var.equipo)
+  # instance = aws_instance.ec2_instance[count.index].id
+  # vpc      = true
+  # tags     = merge({ "Name" = var.equipo[count.index] }, var.tags)
+
+  # Create this record if we have a mail team
+  count   = contains(var.equipo, "mail") == true ? 1 : 0
+  instance = aws_instance.ec2_instance[index(var.equipo, "mail")].id
   vpc      = true
-  tags     = merge({ "Name" = var.equipo[count.index] }, var.tags)
+  tags     = merge({ "Name" = var.equipo[index(var.equipo, "mail")] }, var.tags)
 }
 
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/eip_association.html
 
 resource "aws_eip_association" "elastic_ip_association" {
-  count         = length(var.equipo)
-  instance_id   = aws_instance.ec2_instance[count.index].id
-  allocation_id = aws_eip.elastic_ip[count.index].id
+  # count         = length(var.equipo)
+  # instance_id   = aws_instance.ec2_instance[count.index].id
+  # allocation_id = aws_eip.elastic_ip[count.index].id
+
+  # Create this record if we have a mail team
+  count   = contains(var.equipo, "mail") == true ? 1 : 0
+  instance_id   = aws_instance.ec2_instance[index(var.equipo, "mail")].id
+  allocation_id = aws_eip.elastic_ip[0].id # Potential gotcha over here
 }
