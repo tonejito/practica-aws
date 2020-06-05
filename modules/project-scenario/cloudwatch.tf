@@ -16,9 +16,9 @@ resource "aws_cloudwatch_dashboard" "cloudwatch_dashboard" {
             "height": 3,
             "properties": {
                 "metrics": [
-                  %{ for id in aws_instance.ec2_instance.*.id }
+                  %{for id in aws_instance.ec2_instance.*.id}
                     [ "AWS/EC2", "CPUUtilization", "InstanceId", "${id}" ],
-                  %{ endfor }
+                  %{endfor}
                     [ "AWS/EC2", "CPUUtilization", "InstanceId", "i-01234567" ]
                 ],
                 "view": "timeSeries",
@@ -36,13 +36,13 @@ resource "aws_cloudwatch_dashboard" "cloudwatch_dashboard" {
             "height": 3,
             "properties": {
                 "metrics": [
-                  %{ for id in aws_instance.ec2_instance.*.id }
+                  %{for id in aws_instance.ec2_instance.*.id}
                     [ "AWS/EC2", "DiskReadBytes", "InstanceId", "${id}" ],
-                  %{ endfor }
+                  %{endfor}
                     [ "AWS/EC2", "DiskReadBytes", "InstanceId", "i-01234567" ],
-                  %{ for id in aws_instance.ec2_instance.*.id }
+                  %{for id in aws_instance.ec2_instance.*.id}
                     [ "AWS/EC2", "DiskWriteBytes", "InstanceId", "${id}", { "yAxis": "right" } ],
-                  %{ endfor }
+                  %{endfor}
                     [ "AWS/EC2", "DiskWriteBytes", "InstanceId", "i-01234567", { "yAxis": "right" } ]
                 ],
                 "view": "timeSeries",
@@ -60,13 +60,13 @@ resource "aws_cloudwatch_dashboard" "cloudwatch_dashboard" {
             "height": 3,
             "properties": {
                 "metrics": [
-                  %{ for id in aws_instance.ec2_instance.*.id }
+                  %{for id in aws_instance.ec2_instance.*.id}
                     [ "AWS/EC2", "NetworkIn", "InstanceId", "${id}" ],
-                  %{ endfor }
+                  %{endfor}
                     [ "AWS/EC2", "NetworkIn", "InstanceId", "i-01234567" ],
-                  %{ for id in aws_instance.ec2_instance.*.id }
+                  %{for id in aws_instance.ec2_instance.*.id}
                     [ "AWS/EC2", "NetworkOut", "InstanceId", "${id}", { "yAxis": "right" } ],
-                  %{ endfor }
+                  %{endfor}
                     [ "AWS/EC2", "NetworkOut", "InstanceId", "i-01234567", { "yAxis": "right" } ]
                 ],
                 "view": "timeSeries",

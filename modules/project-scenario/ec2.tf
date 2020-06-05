@@ -2,6 +2,9 @@
 # https://www.terraform.io/docs/providers/aws/r/instance.html
 # TODO: Add /64 ipv6_cidr_block to aws_subnet to use
 # ipv6_address_count in aws_instance
+#
+# https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/installing-cloudwatch-agent-commandline.html
+# TODO: Install and configure CloudWatch Agent to get memory and OS metrics
 
 resource "aws_instance" "ec2_instance" {
   count                   = length(var.equipo)
@@ -25,13 +28,8 @@ resource "aws_instance" "ec2_instance" {
 # https://www.terraform.io/docs/providers/aws/r/eip.html
 
 resource "aws_eip" "elastic_ip" {
-  # count    = length(var.equipo)
-  # instance = aws_instance.ec2_instance[count.index].id
-  # vpc      = true
-  # tags     = merge({ "Name" = var.equipo[count.index] }, var.tags)
-
   # Create this record if we have a mail team
-  count   = contains(var.equipo, "mail") == true ? 1 : 0
+  count    = contains(var.equipo, "mail") == true ? 1 : 0
   instance = aws_instance.ec2_instance[index(var.equipo, "mail")].id
   vpc      = true
   tags     = merge({ "Name" = var.equipo[index(var.equipo, "mail")] }, var.tags)
@@ -41,12 +39,8 @@ resource "aws_eip" "elastic_ip" {
 # https://www.terraform.io/docs/providers/aws/r/eip_association.html
 
 resource "aws_eip_association" "elastic_ip_association" {
-  # count         = length(var.equipo)
-  # instance_id   = aws_instance.ec2_instance[count.index].id
-  # allocation_id = aws_eip.elastic_ip[count.index].id
-
   # Create this record if we have a mail team
-  count   = contains(var.equipo, "mail") == true ? 1 : 0
+  count         = contains(var.equipo, "mail") == true ? 1 : 0
   instance_id   = aws_instance.ec2_instance[index(var.equipo, "mail")].id
   allocation_id = aws_eip.elastic_ip[0].id # Potential gotcha over here
 }
