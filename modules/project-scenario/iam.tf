@@ -110,6 +110,26 @@ resource "aws_iam_policy" "iam_policy" {
                 "ses:SendRawEmail"
             ],
             "Resource": "*"
+        },
+        {
+            "Sid": "S3LimitedAccess",
+            "Effect": "Deny",
+            "Action": [
+                "s3:*"
+            ],
+            "Resource": [
+                "arn:aws:s3:::terraform-state-s3.redes.tonejito.cf"
+            ]
+        },
+        {
+            "Sid": "DynamoDBLimitedAccess",
+            "Effect": "Deny",
+            "Action": [
+                "dynamodb:*"
+            ],
+            "Resource": [
+                "arn:aws:dynamodb::*:global-table/terraform-lock-dynamodb"
+            ]
         }
     ]
 }
