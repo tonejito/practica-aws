@@ -15,8 +15,8 @@ output "ec2_instances" {
 
 output "elastic_ip" {
   value = [
-    aws_instance.ec2_instance.*.public_ip,
-    aws_instance.ec2_instance.*.private_ip,
+    aws_eip.elastic_ip.*.public_ip,
+    aws_eip.elastic_ip.*.private_ip,
   ]
 }
 
@@ -30,4 +30,11 @@ output "dns_records_a" {
 
 output "dashboard_url" {
   value = "https://console.aws.amazon.com/cloudwatch/home?region=${var.aws_region}#dashboards:name=${aws_cloudwatch_dashboard.cloudwatch_dashboard.dashboard_name}"
+}
+
+output "smtp_credentials" {
+  value = [
+    aws_iam_access_key.iam_access_key[0].id,
+    aws_iam_access_key.iam_access_key[0].ses_smtp_password_v4,
+  ]
 }

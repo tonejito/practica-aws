@@ -17,8 +17,8 @@ resource "aws_route53_record" "public_record_a" {
   name    = "${var.equipo[count.index]}.${var.dns_domain}"
   type    = "A"
   ttl     = "300"
-  # records = [aws_eip.elastic_ip[count.index].public_ip]
-  records = [aws_instance.ec2_instance[count.index].public_ip]
+  records = [aws_eip.elastic_ip[count.index].public_ip]
+  # records = [aws_instance.ec2_instance[count.index].public_ip]
 }
 
 resource "aws_route53_record" "private_record_a" {
@@ -27,8 +27,8 @@ resource "aws_route53_record" "private_record_a" {
   name    = "${var.equipo[count.index]}.priv.${var.dns_domain}"
   type    = "A"
   ttl     = "300"
-  # records = [aws_eip.elastic_ip[count.index].private_ip]
-  records = [aws_instance.ec2_instance[count.index].private_ip]
+  records = [aws_eip.elastic_ip[count.index].private_ip]
+  # records = [aws_instance.ec2_instance[count.index].private_ip]
 }
 
 # S3 static website

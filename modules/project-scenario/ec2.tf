@@ -32,19 +32,17 @@ resource "aws_instance" "ec2_instance" {
 # https://www.terraform.io/docs/providers/aws/r/eip.html
 
 resource "aws_eip" "elastic_ip" {
-  # Create this record if we have a mail team
-  count    = contains(var.equipo, "mail") == true ? 1 : 0
-  instance = aws_instance.ec2_instance[index(var.equipo, "mail")].id
+  count    = length(var.equipo)
+  instance = aws_instance.ec2_instance[count.index].id
   vpc      = true
-  tags     = merge({ "Name" = var.equipo[index(var.equipo, "mail")] }, var.tags)
+  tags     = merge({ "Name" = var.equipo[count.index] }, var.tags)
 }
 
 ################################################################################
 # https://www.terraform.io/docs/providers/aws/r/eip_association.html
 
 resource "aws_eip_association" "elastic_ip_association" {
-  # Create this record if we have a mail team
-  count         = contains(var.equipo, "mail") == true ? 1 : 0
-  instance_id   = aws_instance.ec2_instance[index(var.equipo, "mail")].id
-  allocation_id = aws_eip.elastic_ip[0].id # Potential gotcha over here
+  count         = length(var.equipo)
+  instance_id   = aws_instance.ec2_instance[count.index].id
+  allocation_id = aws_eip.elastic_ip[count.index].id
 }
