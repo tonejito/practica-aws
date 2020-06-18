@@ -112,13 +112,28 @@ resource "aws_iam_policy" "iam_policy" {
             "Resource": "*"
         },
         {
+            "Sid": "S3ConfigStorage",
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject",
+                "s3:RestoreObject",
+                "s3:DeleteObjectVersion"
+            ],
+            "Resource": [
+                "arn:aws:s3:::config.${var.dns_domain}",
+                "arn:aws:s3:::config.${var.dns_domain}/*"
+            ]
+        },
+        {
             "Sid": "S3LimitedAccess",
             "Effect": "Deny",
             "Action": [
                 "s3:*"
             ],
             "Resource": [
-                "arn:aws:s3:::terraform-state-s3.redes.tonejito.cf"
+                "arn:aws:s3:::terraform-state-s3.${var.dns_domain}"
             ]
         },
         {

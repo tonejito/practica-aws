@@ -46,7 +46,7 @@ s3_website_content = [
   {
     "Name" = "error.txt",
     "Source" = "files/error.txt",
-    "ContentType" = "text/plain",
+    "Content-Type" = "text/plain",
   },
 ]
 

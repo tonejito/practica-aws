@@ -45,6 +45,20 @@ resource "aws_route53_record" "_" {
   }
 }
 
+# S3 static website - config
+resource "aws_route53_record" "config" {
+  zone_id = aws_route53_zone.dns_zone.zone_id
+  name    = "config.${var.dns_domain}"
+  type    = "A"
+
+  alias {
+    name    = aws_s3_bucket.config_storage.website_domain
+    zone_id = aws_s3_bucket.config_storage.hosted_zone_id
+
+    evaluate_target_health = true
+  }
+}
+
 resource "aws_route53_record" "mx" {
   # Create this record if we have a mail team
   count   = contains(var.equipo, "mail") == true ? 1 : 0
