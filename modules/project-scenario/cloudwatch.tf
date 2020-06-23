@@ -112,6 +112,60 @@ resource "aws_cloudwatch_dashboard" "cloudwatch_dashboard" {
                 "stat": "Average",
                 "period": 60
             }
+        },
+        {
+            "type": "metric",
+            "x": 0,
+            "y": 15,
+            "width": 24,
+            "height": 3,
+            "properties": {
+                "metrics": [
+                  %{for id in aws_instance.ec2_instance.*.id}
+                    [ "AWS/EC2", "CPUCreditBalance", "InstanceId", "${id}" ],
+                    [ "AWS/EC2", "CPUCreditUsage", "InstanceId", "${id}" ],
+                  %{endfor}
+                    [ "AWS/EC2", "CPUCreditBalance", "InstanceId", "i-01234567" ],
+                    [ "AWS/EC2", "CPUCreditUsage", "InstanceId", "i-01234567" ],
+                  %{for id in aws_instance.ec2_instance.*.id}
+                    [ "AWS/EC2", "CPUSurplusCreditBalance", "InstanceId", "${id}", { "yAxis": "right" } ],
+                    [ "AWS/EC2", "CPUSurplusCreditsCharged", "InstanceId", "${id}", { "yAxis": "right" } ],
+                  %{endfor}
+                    [ "AWS/EC2", "CPUSurplusCreditBalance", "InstanceId", "i-01234567", { "yAxis": "right" } ],
+                    [ "AWS/EC2", "CPUSurplusCreditsCharged", "InstanceId", "i-01234567", { "yAxis": "right" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${var.aws_region}",
+                "period": 60,
+                "stat": "Average"
+            }
+        },
+        {
+            "type": "metric",
+            "x": 0,
+            "y": 18,
+            "width": 24,
+            "height": 3,
+            "properties": {
+                "metrics": [
+                  %{for id in aws_instance.ec2_instance.*.id}
+                    [ "AWS/EC2", "StatusCheckFailed", "InstanceId", "${id}" ],
+                    [ "AWS/EC2", "StatusCheckFailed_Instance", "InstanceId", "${id}" ],
+                  %{endfor}
+                    [ "AWS/EC2", "StatusCheckFailed", "InstanceId", "i-01234567" ],
+                    [ "AWS/EC2", "StatusCheckFailed_Instance", "InstanceId", "i-01234567" ],
+                  %{for id in aws_instance.ec2_instance.*.id}
+                    [ "AWS/EC2", "MetadataNoToken", "InstanceId", "${id}", { "yAxis": "right" } ],
+                  %{endfor}
+                    [ "AWS/EC2", "MetadataNoToken", "InstanceId", "i-01234567", { "yAxis": "right" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${var.aws_region}",
+                "period": 60,
+                "stat": "Average"
+            }
         }
     ]
 }
