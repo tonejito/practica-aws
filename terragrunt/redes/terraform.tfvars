@@ -15,7 +15,7 @@ ssh_key_file = "~/.ssh/keys/aws-ciencias_rsa.pub"
 
 key_name = "aws-ciencias_rsa"
 
-instance_type = "t2.nano"
+instance_type = "t2.micro"
 
 name = "redes"
 
