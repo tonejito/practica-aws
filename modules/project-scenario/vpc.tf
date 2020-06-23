@@ -13,6 +13,7 @@ resource "aws_security_group" "allow_all" {
 # TODO: Create SG rules in array
 
 resource "aws_security_group_rule" "allow_all_ingress" {
+  security_group_id = aws_security_group.allow_all.id
   description       = "pass in all"
   type              = "ingress"
   protocol          = "-1"
@@ -20,10 +21,10 @@ resource "aws_security_group_rule" "allow_all_ingress" {
   to_port           = "0"
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.allow_all.id
 }
 
 resource "aws_security_group_rule" "allow_all_egress" {
+  security_group_id = aws_security_group.allow_all.id
   description       = "pass out all"
   type              = "egress"
   protocol          = "-1"
@@ -31,5 +32,4 @@ resource "aws_security_group_rule" "allow_all_egress" {
   to_port           = "0"
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.allow_all.id
 }
