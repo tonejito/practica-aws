@@ -47,10 +47,19 @@ resource "aws_iam_access_key" "iam_access_key" {
 }
 
 ################################################################################
+# https://www.terraform.io/docs/providers/aws/r/iam_instance_profile.html
+
+resource "aws_iam_instance_profile" "iam_instance_profile" {
+  name = "profile-${var.name}-${random_id.id.hex}"
+  role = aws_iam_role.iam_role.name
+}
+
+################################################################################
 # https://www.terraform.io/docs/providers/aws/r/iam_role.html
 
 resource "aws_iam_role" "iam_role" {
   name               = "role-${var.name}-${random_id.id.hex}"
+  path               = var.iam_path
   tags               = var.tags
   assume_role_policy = <<EOF
 {

@@ -14,6 +14,7 @@ resource "aws_instance" "ec2_instance" {
   count                   = length(var.equipo)
   ami                     = var.ami_id
   instance_type           = var.instance_type
+  iam_instance_profile    = aws_iam_instance_profile.iam_instance_profile.id
   key_name                = aws_key_pair.ssh_key.key_name
   ebs_optimized           = "false" # "true"
   monitoring              = "false"
