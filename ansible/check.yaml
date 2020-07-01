@@ -1,0 +1,354 @@
+################################################################################
+# Define scope and variables
+
+- hosts: all
+  become: yes
+  vars:
+    dns_domain: redes.tonejito.cf
+    ssh_key_file: ~/.ssh/keys/aws-ciencias_rsa.pub
+  tasks:
+
+################################################################################
+# Begin checking stuff
+
+  - name: Get hostname
+    command: bash -c "hostname -f ; hostname -I ; hostname -i ;"
+    tags:
+    - hostname
+    register: output
+  - debug: var=output.stdout_lines
+    tags:
+    - hostname
+
+  - name: Run updatedb (in background)
+    command: updatedb
+    async: 3600
+    poll: 0
+    tags:
+    - locate
+
+  - name: Run ncdu (in background)
+    command:
+      cmd: ncdu -x0o ~/.ncdu /
+      chdir: /root
+    async: 3600
+    poll: 0
+    tags:
+    - ncdu
+
+  - name: Check /etc/issue and /etc/motd
+    command: tail -n 100 /etc/issue /etc/motd
+    tags:
+    - banner
+    register: output
+  - debug: var=output.stdout_lines
+    tags:
+    - banner
+
+  - name: Check free RAM
+    command: free -mw
+    tags:
+    - ram
+    register: output
+  - debug: var=output.stdout_lines
+    tags:
+    - ram
+
+  - name: Check free disk
+    command: df -m /
+    tags:
+    - disk
+    register: output
+  - debug: var=output.stdout_lines
+    tags:
+    - disk
+
+  - name: Check running processes
+    command: bash -c "ps aufx | egrep -v '(\\_ )\[.*\]$'"
+    tags:
+    - ps
+    register: output
+  - debug: var=output.stdout_lines
+    tags:
+    - ps
+
+  - name: Check iptables rules
+    command: iptables-save
+    tags:
+    - iptables
+    register: output
+  - debug: var=output.stdout_lines
+    tags:
+    - iptables
+
+  - name: Check open ports
+    command: netstat -natulp
+    tags:
+    - netstat
+    register: output
+  - debug: var=output.stdout_lines
+    tags:
+    - netstat
+
+  - name: Sort passwd and group files
+    command: bash -c "pwck -s ; grpck -s ;"
+    tags:
+    - pwck
+    register: output
+
+  - name: getent passwd
+    command: getent passwd
+    tags:
+    - getent
+    register: output
+  - debug: var=output.stdout_lines
+    tags:
+    - getent
+
+  - name: getent group
+    command: getent group
+    tags:
+    - getent
+    register: output
+  - debug: var=output.stdout_lines
+    tags:
+    - getent
+
+  - name: Check last login
+    command: bash -c "last --dns --hostlast ; lastlog ;"
+    tags:
+    - netstat
+    register: output
+  - debug: var=output.stdout_lines
+    tags:
+    - netstat
+
+################################################################################
+# Apache HTTPD
+
+  - name: Check if /etc/apache2/apache2.conf exists
+    stat:
+      path: /etc/apache2/apache2.conf
+    register: apache2_conf
+    tags:
+    - apache2
+
+  - name: Enable modules in apache2
+    command: "a2enmod {{ item }}"
+    with_items:
+    - status
+    - info
+    when: apache2_conf.stat.exists == True
+    tags:
+    - apache2
+
+  - name: Restart apache2 on Debian-like
+    service:
+      name: apache2
+      state: restarted
+    when: apache2_conf.stat.exists == True
+    tags:
+    - apache2
+
+# TODO: Copy or clone this and run it inside of the servers
+# https://github.com/tonejito/httpd-status-info
+
+  - name: Display apache2 status
+    command: bash -c "elinks -dump -dump-width 80 'http://localhost/server-status'"
+    when: apache2_conf.stat.exists == True
+    tags:
+    - apache2
+    register: output
+  - debug: var=output.stdout_lines
+    when: apache2_conf.stat.exists == True
+    tags:
+    - apache2
+
+  - name: Display apache2 running configuration
+    command: bash -c "elinks -dump -dump-width 80 'http://localhost/server-info?config'"
+    when: apache2_conf.stat.exists == True
+    tags:
+    - apache2
+    register: output
+  - debug: var=output.stdout_lines
+    when: apache2_conf.stat.exists == True
+    tags:
+    - apache2
+
+################################################################################
+# Let's Encrypt
+
+  - name: Check if /etc/letsencrypt/live/*/cert.pem exists
+    stat:
+      path: /etc/letsencrypt/live/{{ inventory_hostname }}.{{ dns_domain }}/cert.pem
+    register: letsencrypt_cert
+    tags:
+    - letsencrypt
+
+  - name: Check Let's Encrypt SSL certificate
+    command:
+      cmd: bash -c "ls -lArt ; openssl x509 -in cert.pem -noout -text"
+      chdir: /etc/letsencrypt/live/{{ inventory_hostname }}.{{ dns_domain }}
+    when: letsencrypt_cert.stat.exists == True
+    tags:
+    - letsencrypt
+    register: output
+  - debug: var=output.stdout_lines
+    when: letsencrypt_cert.stat.exists == True
+    tags:
+    - letsencrypt
+
+################################################################################
+# MySQL / MariaDB
+
+  - name: Check if /etc/mysql/my.cnf exists
+    stat:
+      path: /etc/mysql/my.cnf
+    register: my_cnf
+    tags:
+    - mysql
+
+  - name: Dump MySQL config
+    command:
+      cmd: bash -c "find /etc/mysql/my.cnf /etc/mysql/debian.cnf /etc/mysql/conf.d/ /etc/mysql/mysql.conf.d/ /etc/mysql/mariadb.conf.d/ \( -type f -o -type l \) | xargs -r -t egrep -v '^\s*(#|;|$)' | sed -e 's/\t/        /g'"
+      chdir: /etc/mysql
+    when: my_cnf.stat.exists == True
+    tags:
+    - mysql
+    register: output
+  - debug: var=output.stdout_lines
+    when: my_cnf.stat.exists == True
+    tags:
+    - mysql
+
+################################################################################
+# PostgreSQL
+
+  - name: Dump PostgreSQL config
+    command:
+      cmd: bash -c "find /etc/postgresql -type f \( -iname 'postgresql.conf' -o -iname 'pg_hba.conf' \) | xargs -r -t egrep -v '^\s*(#|$)' | sed -e 's/\t/        /g' || true"
+    tags:
+    - postgresql
+    register: output
+  - debug: var=output.stdout_lines
+    tags:
+    - postgresql
+
+################################################################################
+# OpenVPN
+
+  # - name: Check if /etc/openvpn/update-resolv-conf exists
+  #   stat:
+  #     path: /etc/openvpn/update-resolv-conf
+  #   register: openvpn_dir
+  #   tags:
+  #   - openvpn
+
+  - name: Dump OpenVPN server config
+    command:
+      cmd: bash -c "find /etc/openvpn/ \( -type f -o -type l \) \( -iname 'server.conf' -o -iname 'server.crt' \) | xargs -r -t egrep -v '^\s*(#|;|$)' | sed -e 's/\t/        /g'"
+      chdir: /etc/openvpn/
+    # when: openvpn_dir.stat.exists == True
+    when: ( inventory_hostname == "vpn" ) or ( inventory_hostname == "tunnel" )
+    tags:
+    - openvpn
+    register: output
+  - debug: var=output.stdout_lines
+    # when: openvpn_dir.stat.exists == True
+    when: ( inventory_hostname == "vpn" ) or ( inventory_hostname == "tunnel" )
+    tags:
+    - openvpn
+
+################################################################################
+# Postfix
+
+  - name: Dump /etc/aliases
+    command: cat /etc/aliases
+    tags:
+    - postfix
+    - aliases
+    register: output
+  - debug: var=output.stdout_lines
+    tags:
+    - postfix
+    - aliases
+
+  - name: Check if /etc/postfix/main.cf exists
+    stat:
+      path: /etc/postfix/main.cf
+    register: postfix_conf
+    tags:
+    - postfix
+
+  - name: Dump Postfix server config
+    command:
+      cmd: bash -c "find /etc/postfix/ \( -type f -o -type l \) \( -iname '*.cf' -o -iname 'sasl_passwd' \) | xargs -r -t egrep -v '^\s*(#|;|$)' | sed -e 's/\t/        /g'"
+      chdir: /etc/postfix/
+    when: postfix_conf.stat.exists == True
+    tags:
+    - postfix
+    register: output
+  - debug: var=output.stdout_lines
+    when: postfix_conf.stat.exists == True
+    tags:
+    - postfix
+
+################################################################################
+# Dovecot
+
+  - name: Dump Dovecot server config
+    command:
+      cmd: bash -c "find /etc/dovecot/ \( -type f -o -type l \) -iname '*.conf' | xargs -r -t egrep -v '^\s*(#|;|$)' | sed -e 's/\t/        /g'"
+      chdir: /etc/dovecot/
+    when: inventory_hostname == "mail"
+    tags:
+    - dovecot
+    register: output
+  - debug: var=output.stdout_lines
+    when: inventory_hostname == "mail"
+    tags:
+    - dovecot
+
+################################################################################
+# Tomcat
+
+  - name: Dump Tomcat systemctl config from /lib or /etc
+    command: bash -c "for FILE in /lib/systemd/system/tomcat9.service /etc/systemd/system/tomcat.service ; do test -e ${FILE} && cat ${FILE} || true ; done ;"
+    when: ( inventory_hostname == "access" ) or ( inventory_hostname == "java" )
+    register: output
+    tags:
+    - tomcat
+  - debug: var=output.stdout_lines
+    when: ( inventory_hostname == "access" ) or ( inventory_hostname == "java" )
+    tags:
+    - tomcat
+
+  - name: Dump Tomcat catalina.properties from /etc or /opt
+    command: bash -c "for FILE in /etc/tomcat9/catalina.properties /opt/tomcat/conf/catalina.properties ; do if [ -e ${FILE} ] ; then egrep -v '^\s*(#|$)' ${FILE} | sed -z -e 's/\\\n//g' ; fi ; done ;"
+    when: ( inventory_hostname == "access" ) or ( inventory_hostname == "java" )
+    register: output
+    tags:
+    - tomcat
+    - catalina
+  - debug: var=output.stdout_lines
+    when: ( inventory_hostname == "access" ) or ( inventory_hostname == "java" )
+    tags:
+    - tomcat
+    - catalina
+
+  - name: Dump Tomcat server.xml from /etc or /opt
+    command: bash -c "for FILE in /etc/tomcat9/server.xml /opt/tomcat/conf/server.xml ; do test -e ${FILE} && xmlstarlet ed -d '//comment()' ${FILE} || true ; done ;"
+    when: ( inventory_hostname == "access" ) or ( inventory_hostname == "java" )
+    register: output
+    tags:
+    - tomcat
+  - debug: var=output.stdout_lines
+    when: ( inventory_hostname == "access" ) or ( inventory_hostname == "java" )
+    tags:
+    - tomcat
+
+
+
+################################################################################
+# TODO: Use the fecth module to copy configs from remote hosts to local
+# https://docs.ansible.com/ansible/latest/modules/fetch_module.html#fetch-module

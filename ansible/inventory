@@ -1,0 +1,16 @@
+[redes]
+
+# proxy           ansible_host=proxy.redes.tonejito.cf
+# python          ansible_host=python.redes.tonejito.cf
+vpn             ansible_host=vpn.redes.tonejito.cf
+tunnel          ansible_host=tunnel.redes.tonejito.cf
+monitoring      ansible_host=monitoring.redes.tonejito.cf
+mail            ansible_host=mail.redes.tonejito.cf
+
+java            ansible_host=java.redes.tonejito.cf
+access          ansible_host=access.redes.tonejito.cf
+files           ansible_host=files.redes.tonejito.cf
+db-master       ansible_host=db-master.redes.tonejito.cf
+db-slave        ansible_host=db-slave.redes.tonejito.cf
+otro-db-master  ansible_host=otro-db-master.redes.tonejito.cf
+otro-db-slave   ansible_host=otro-db-slave.redes.tonejito.cf
