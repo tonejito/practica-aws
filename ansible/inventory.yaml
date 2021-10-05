@@ -1,0 +1,27 @@
+---
+admin_linux:
+  hosts:
+    dns:
+      ansible_host: dns.admin-linux.tonejito.cf
+      # ansible_user: ec2-user
+      distro:       Amazon Linux 2
+    web:
+      ansible_host: web.admin-linux.tonejito.cf
+      # ansible_user: admin
+      distro:       Debian 10
+    mail:
+      ansible_host: mail.admin-linux.tonejito.cf
+      # ansible_user: centos
+      distro:       CentOS 7
+    database:
+      ansible_host: database.admin-linux.tonejito.cf
+      # ansible_user: centos
+      distro:       CentOS 8 Stream
+    directory:
+      ansible_host: directory.admin-linux.tonejito.cf
+      # ansible_user: admin
+      distro:       Debian 11
+    storage:
+      ansible_host: storage.admin-linux.tonejito.cf
+      # ansible_user: ubuntu
+      distro:       Ubuntu 20.04 LTS

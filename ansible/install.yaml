@@ -1,0 +1,201 @@
+# https://docs.ansible.com/ansible/latest/user_guide/playbooks.html
+# https://docs.ansible.com/ansible/latest/modules/hostname_module.html
+# https://docs.ansible.com/ansible/latest/modules/lineinfile_module.html
+# https://docs.ansible.com/ansible/latest/modules/template_module.html
+# https://docs.ansible.com/ansible/latest/modules/copy_module.html
+# https://docs.ansible.com/ansible/latest/modules/user_module.html
+# https://docs.ansible.com/ansible/latest/modules/authorized_key_module.html
+# https://docs.ansible.com/ansible/latest/modules/iptables_module.html
+# https://docs.ansible.com/ansible/latest/modules/apt_module.html
+# https://docs.ansible.com/ansible/latest/modules/yum_module.html
+# https://docs.ansible.com/ansible/latest/modules/service_module.html
+
+################################################################################
+# Define scope and variables
+
+- hosts: all
+  become: yes
+  vars:
+    # dns_domain: redes.tonejito.cf
+    dns_domain: admin-linux.tonejito.cf
+    ssh_key_file: ~/.ssh/keys/aws-ciencias_rsa.pub
+  tasks:
+
+################################################################################
+# Set hostname
+
+  - name: Set hostname
+    hostname:
+      name: "{{ inventory_hostname }}.{{ dns_domain }}"
+    tags:
+    - hostname
+
+  # - name: Get hostname
+  #   command: hostname -f
+  #   tags:
+  #   - hostname
+  #   register: output
+  # - debug: var=output.stdout_lines
+  #   tags:
+  #   - hostname
+
+#################################################################################
+# Set SELinux policy to permissive
+
+  - name: Set SELinux policy
+    selinux:
+      state: permissive
+      policy: targeted
+    when: ansible_selinux.status == "enabled"
+
+################################################################################
+# Add user and ssh key
+
+  - name: Fix /etc/sudoers on Debian-like
+    lineinfile:
+      path: /etc/sudoers
+      state: present
+      regexp: '^%sudo'
+      line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+      validate: 'visudo -cf %s'
+    when: ansible_os_family == "Debian"
+    tags:
+    - user
+
+  - name: Fix /etc/sudoers on RedHat-like
+    lineinfile:
+      path: /etc/sudoers
+      state: present
+      regexp: '^%wheel'
+      line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+      validate: 'visudo -cf %s'
+    when: ansible_os_family == "RedHat"
+    tags:
+    - user
+
+  - name: Add user on Debian-like
+    user:
+      name: "{{ item }}"
+      comment: "{{ item }}"
+      shell: /bin/bash
+      group: sudo
+      state: present
+    loop:
+    - tonejito
+    - becarios
+    when: ansible_os_family == "Debian"
+    tags:
+    - user
+
+  - name: Add user on RedHat-like
+    user:
+      name: "{{ item }}"
+      comment: "{{ item }}"
+      shell: /bin/bash
+      group: wheel
+      state: present
+    loop:
+    - tonejito
+    - becarios
+    when: ansible_os_family == "RedHat"
+    tags:
+    - user
+
+  - name: Ensure ~/.ssh exists
+    file:
+      path: ~{{ item }}/.ssh
+      state: directory
+      mode: 0700
+    loop:
+    - root
+    - tonejito
+
+  - name: Check if ~/.ssh/authorized_keys exists
+    stat:
+      path: ~tonejito/.ssh/authorized_keys
+    register: ssh_authorized_keys
+
+  - name: Create empty ~/.ssh/authorized_keys
+    copy:
+      content: ""
+      dest: ~tonejito/.ssh/authorized_keys
+      mode: 0600
+    when: not ssh_authorized_keys.stat.exists
+
+  - name: chattr -i ~/.ssh/authorized_keys
+    file:
+      path: ~{{ item }}/.ssh/authorized_keys
+      attributes: -i
+    loop:
+    - root
+    - tonejito
+    tags:
+    - user
+    - chattr
+
+  - name: Set SELinux context on ~/.ssh/authorized_keys
+    file:
+      path: ~{{ item }}/.ssh/authorized_keys
+      seuser: unconfined_u
+      serole: object_r
+      setype: ssh_home_t
+      selevel: s0
+    loop:
+    - root
+    - tonejito
+    - becarios
+    when: ansible_selinux.status == "enabled"
+
+  - name: Copy master SSH key
+    authorized_key:
+      user: "{{ item }}"
+      state: present
+      key: "{{ lookup('file', '{{ ssh_key_file }}') }}"
+    loop:
+    - root
+    - tonejito
+    tags:
+    - user
+
+  - name: Copy team SSH key
+    authorized_key:
+      user: "{{ item }}"
+      state: present
+      key: "{{ lookup('file', 'keys/{{ inventory_hostname }}_rsa.pub') }}"
+    loop:
+    - becarios
+    tags:
+    - user
+    - keys
+
+  - name: chattr +i ~/.ssh/authorized_keys
+    file:
+      path: ~{{ item }}/.ssh/authorized_keys
+      attributes: +i
+    loop:
+    - root
+    - tonejito
+    tags:
+    - user
+    - chattr
+
+################################################################################
+# Enable and start network services
+
+  - name: Enable and start service ssh on Debian-like
+    service:
+      name: ssh
+      enabled: yes
+      state: started
+    when: ansible_os_family == "Debian"
+    tags:
+    - services
+
+  - name: Enable and start service sshd on RedHat-like
+    service:
+      name: sshd
+      enabled: yes
+      state: started
+    when: ansible_os_family == "RedHat"
+    tags:
+    - services

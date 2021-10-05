@@ -1,6 +1,7 @@
 #	.gitignore
 *.old
 *.asciinema
+*.log
 
 ### macOS ###
 # General

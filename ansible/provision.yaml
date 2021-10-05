@@ -16,7 +16,8 @@
 - hosts: all
   become: yes
   vars:
-    dns_domain: redes.tonejito.cf
+    # dns_domain: redes.tonejito.cf
+    dns_domain: admin-linux.tonejito.cf
     ssh_key_file: ~/.ssh/keys/aws-ciencias_rsa.pub
   tasks:
 
