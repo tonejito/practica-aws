@@ -1,30 +1,29 @@
-aws_profile = "ciencias"
+aws_profile = "default"
+# aws_profile = "ciencias"
 
-aws_region = "us-east-1" # Virginia
+aws_region = "us-east-2" # Ohio
 
-vpc_id = "vpc-fe5b4584" # us-east-1
+vpc_id = "vpc-bc09d7d7" # us-east-2
 
-subnet_id = "subnet-978c4ef1" # us-east-1b (use1-az1)
+#	ami_id = "ami-123456789abcdef00" # DUMMY
+#	instance_type = "t4g.nano"
 
-# https://wiki.debian.org/Cloud/AmazonEC2Image/Buster
-ami_id = "ami-0f31df35880686b3f" # Debian 10 (us-east-1)
+subnet_id = "subnet-8637f1ed" # us-east-2a (use2-az1)
 
-dns_domain = "redes.tonejito.cf"
+dns_domain = "admin-linux.tonejito.cf"
 
 ssh_key_file = "~/.ssh/keys/aws-ciencias_rsa.pub"
 
 key_name = "aws-ciencias_rsa"
 
-instance_type = "t2.micro"
+name = "admin-linux"
 
-name = "redes"
-
-iam_path = "/redes/"
+iam_path = "/admin-linux/"
 
 tags = {
   Terraform = "True"
-  Materia   = "Redes"
-  Semestre  = "2020-2"
+  Materia   = "AdminLinux"
+  Semestre  = "2021"
   Proyecto  = "Proyecto final"
   Equipo    = "Equipo"
 }
@@ -55,18 +54,46 @@ s3_website_content = [
 # - IAM user / access_keys
 # - DNS records
 
+equipos = [
+  "dns",
+  "web",
+  "mail",
+  "database",
+  "directory",
+  "storage",
+]
+
 equipo = [
-  "vpn",         # 0
-  "tunnel",      # 1
-  "files",       # 2
-  "proxy",       # 3
-  "monitoring",  # 4
-  "mail",        # 5
-  "access",      # 6
-  "python",      # 7
-  "java",        # 8
-  "db-master",   # 9
-  "db-slave",    # 10
+  {
+    "name" = "dns",
+    "instance_type" = "t4g.nano",
+    "ami_id" = "ami-031dea1a744251b51" , # Amazon Linux 2 ARM64
+  },
+  {
+    "name" = "web",
+    "instance_type" = "t4g.nano",
+    "ami_id" = "ami-060544b8209ee8136", # Debian 10 ARM64
+  },
+  {
+    "name" = "mail",
+    "instance_type" = "t4g.nano",
+    "ami_id" = "ami-07f692d95b2b9c8c5", # CentOS 7 ARM64
+  },
+  {
+    "name" = "database",
+    "instance_type" = "t4g.micro",
+    "ami_id" = "ami-01cdc9e8306344fe0", # CentOS 8 Stream ARM64
+  },
+  {
+    "name" = "directory",
+    "instance_type" = "t4g.nano",
+    "ami_id" = "ami-05072f33892a49012", # Debian 11 ARM64
+  },
+  {
+    "name" = "storage",
+    "instance_type" = "t4g.nano",
+    "ami_id" = "ami-0280c148473619d48", # Ubuntu 20.04 ARM64
+  },
 ]
 
 # aws ec2 describe-instance-attribute --instance-id ${INSTANCE_ID} --attribute disableApiTermination --region ${REGION}

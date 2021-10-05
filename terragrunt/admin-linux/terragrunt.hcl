@@ -46,7 +46,7 @@ remote_state {
   backend = "s3"
   config = {
     # bucket = "${get_env("TG_BUCKET_PREFIX", "")}terragrunt-state-${local.account_name}-${local.aws_region}"
-    bucket = "terraform-state-s3.redes.tonejito.cf"
+    bucket = "terraform-state-s3.admin-linux.tonejito.cf"
     key = "${path_relative_to_include()}/terraform.tfstate"
     region = "us-east-1" # Virginia
     encrypt        = false
