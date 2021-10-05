@@ -33,6 +33,7 @@ resource "aws_iam_group_membership" "iam_group_membership" {
 
 resource "aws_iam_user" "iam_user" {
   count = length(local.user_list)
+  # name  = "${local.user_list[count.index]}-${var.name}-${random_id.id.hex}"
   name  = "${local.user_list[count.index]}-${var.name}-${random_id.id.hex}"
   path  = var.iam_path
   tags  = var.tags

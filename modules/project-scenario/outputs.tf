@@ -22,7 +22,7 @@ output "elastic_ip" {
 
 output "dns_records_a" {
   value = [
-    aws_route53_record._.name,
+    # aws_route53_record._.name,
     aws_route53_record.public_record_a.*.name,
     aws_route53_record.private_record_a.*.name,
   ]
@@ -33,6 +33,7 @@ output "dashboard_url" {
 }
 
 output "smtp_credentials" {
+  sensitive = true
   value = [
     aws_iam_access_key.iam_access_key[0].id,
     aws_iam_access_key.iam_access_key[0].ses_smtp_password_v4,

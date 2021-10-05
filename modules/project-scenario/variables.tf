@@ -12,13 +12,13 @@ variable "vpc_id" {}
 
 variable "subnet_id" {}
 
-variable "ami_id" {}
+#	variable "ami_id" {}
 
 variable "root_volume_size" {
   default = "10"
 }
 
-variable "instance_type" {}
+#	variable "instance_type" {}
 
 variable "dns_domain" {}
 
@@ -40,8 +40,13 @@ variable "tags" {
   }
 }
 
-variable "equipo" {
+variable "equipos" {
   type = list(string)
+}
+
+variable "equipo" {
+  # type = list(string)
+  type = list(map(string))
 }
 
 variable "extra_iam_policies" {

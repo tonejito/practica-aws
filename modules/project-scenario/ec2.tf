@@ -12,8 +12,8 @@
 
 resource "aws_instance" "ec2_instance" {
   count                   = length(var.equipo)
-  ami                     = var.ami_id
-  instance_type           = var.instance_type
+  ami                     = lookup(var.equipo[count.index], "ami_id")
+  instance_type           = lookup(var.equipo[count.index], "instance_type")
   iam_instance_profile    = aws_iam_instance_profile.iam_instance_profile.id
   key_name                = aws_key_pair.ssh_key.key_name
   ebs_optimized           = "false" # "true"
@@ -25,8 +25,8 @@ resource "aws_instance" "ec2_instance" {
     volume_size = var.root_volume_size
   }
   user_data   = "" # bootstrap from file
-  tags        = merge({ "Name" = var.equipo[count.index] }, var.tags)
-  volume_tags = merge({ "Name" = var.equipo[count.index] }, var.tags)
+  tags        = merge({ "Name" = lookup(var.equipo[count.index], "name") }, var.tags)
+  volume_tags = merge({ "Name" = lookup(var.equipo[count.index], "name") }, var.tags)
 }
 
 ################################################################################
@@ -36,7 +36,7 @@ resource "aws_eip" "elastic_ip" {
   count    = length(var.equipo)
   instance = aws_instance.ec2_instance[count.index].id
   vpc      = true
-  tags     = merge({ "Name" = var.equipo[count.index] }, var.tags)
+  tags     = merge({ "Name" = lookup(var.equipo[count.index], "name") }, var.tags)
 }
 
 ################################################################################
